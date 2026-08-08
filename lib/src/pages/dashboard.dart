@@ -1,6 +1,7 @@
 // src/pages/dashboard.dart
 import 'package:flutter/material.dart';
 import '../components/page_header.dart';
+import '../components/page_footer.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
@@ -10,9 +11,11 @@ class Dashboard extends StatelessWidget {
     return Scaffold(
       appBar: const PageHeader(),
       body: const Center(
-        child: Text("Dashboard content here"),
+        child: Text("Description"),
+
       ),
       backgroundColor: Theme.of(context).colorScheme.surface, 
+      bottomNavigationBar: const PageFooter(),
     );
   }
 }
