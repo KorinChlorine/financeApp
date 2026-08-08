@@ -32,7 +32,7 @@ class Card1 extends StatelessWidget {
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: () {
-          // Add navigation or action here
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Tapped on $title")),
           );

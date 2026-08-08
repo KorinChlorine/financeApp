@@ -1,6 +1,6 @@
 // src/pages/dashboard.dart
 import 'package:flutter/material.dart';
-import '../components/appBar.dart';
+import '../components/page_header.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
@@ -8,11 +8,11 @@ class Dashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AppBarNav(), // black AppBar
+      appBar: const PageHeader(),
       body: const Center(
         child: Text("Dashboard content here"),
       ),
-      backgroundColor: Colors.grey[200], // optional: change page background
+      backgroundColor: Theme.of(context).colorScheme.surface, 
     );
   }
 }
