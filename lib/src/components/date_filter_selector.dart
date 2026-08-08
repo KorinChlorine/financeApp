@@ -7,41 +7,44 @@ class DateFilterSelector extends StatefulWidget {
     super.key,
     required this.filterMode,
     required this.onFilterChanged,
+    required this.selectedDate,
+    required this.onDateChanged,
   });
 
   final DateFilterMode filterMode;
   final ValueChanged<DateFilterMode> onFilterChanged;
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onDateChanged;
 
   @override
   State<DateFilterSelector> createState() => _DateFilterSelectorState();
 }
 
 class _DateFilterSelectorState extends State<DateFilterSelector> {
-  DateTime _selectedDate = DateTime.now();
 
   void _changeDate(int offset) {
-    setState(() {
-      switch (widget.filterMode) {
-        case DateFilterMode.daily:
-          _selectedDate = _selectedDate.add(const Duration(days: 1) * offset);
-          break;
-        case DateFilterMode.weekly:
-          _selectedDate = _selectedDate.add(const Duration(days: 7) * offset);
-          break;
-        case DateFilterMode.monthly:
-          _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + offset);
-          break;
-        case DateFilterMode.yearly:
-          _selectedDate = DateTime(_selectedDate.year + offset, _selectedDate.month);
-          break;
-      }
-    });
+    DateTime nextDate;
+    switch (widget.filterMode) {
+      case DateFilterMode.daily:
+        nextDate = widget.selectedDate.add(const Duration(days: 1) * offset);
+        break;
+      case DateFilterMode.weekly:
+        nextDate = widget.selectedDate.add(const Duration(days: 7) * offset);
+        break;
+      case DateFilterMode.monthly:
+        nextDate = DateTime(widget.selectedDate.year, widget.selectedDate.month + offset);
+        break;
+      case DateFilterMode.yearly:
+        nextDate = DateTime(widget.selectedDate.year + offset, widget.selectedDate.month);
+        break;
+    }
+    widget.onDateChanged(nextDate);
   }
 
   Future<void> _pickDate() async {
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: widget.selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       builder: (context, child) {
@@ -57,24 +60,22 @@ class _DateFilterSelectorState extends State<DateFilterSelector> {
     );
 
     if (pickedDate != null && mounted) {
-      setState(() {
-        _selectedDate = pickedDate;
-      });
+      widget.onDateChanged(pickedDate);
     }
   }
 
   String _formatLabel() {
     switch (widget.filterMode) {
       case DateFilterMode.daily:
-        return '${_weekdayName(_selectedDate.weekday)}, ${_selectedDate.day} ${_monthName(_selectedDate.month)} ${_selectedDate.year}';
+        return '${_weekdayName(widget.selectedDate.weekday)}, ${widget.selectedDate.day} ${_monthName(widget.selectedDate.month)} ${widget.selectedDate.year}';
       case DateFilterMode.weekly:
-        final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
+        final startOfWeek = widget.selectedDate.subtract(Duration(days: widget.selectedDate.weekday - 1));
         final endOfWeek = startOfWeek.add(const Duration(days: 6));
         return '${_monthName(startOfWeek.month)} ${startOfWeek.day} - ${_monthName(endOfWeek.month)} ${endOfWeek.day}, ${startOfWeek.year}';
       case DateFilterMode.monthly:
-        return '${_monthName(_selectedDate.month)} ${_selectedDate.year}';
+        return '${_monthName(widget.selectedDate.month)} ${widget.selectedDate.year}';
       case DateFilterMode.yearly:
-        return '${_selectedDate.year}';
+        return '${widget.selectedDate.year}';
     }
   }
 

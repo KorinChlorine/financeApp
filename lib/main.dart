@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'src/pages/accounts_page.dart';
 import 'src/pages/dashboard.dart';
+import 'src/services/finance_repository.dart';
 
 void main() {
   runApp(const MyApp());
@@ -48,6 +50,10 @@ class MyApp extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
+      routes: {
+        '/home': (context) => const Dashboard(),
+        '/accounts': (context) => AccountsPage(repository: financeRepository),
+      },
       home: const Dashboard(),
     );
   }
