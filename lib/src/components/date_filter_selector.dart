@@ -112,7 +112,7 @@ class _DateFilterSelectorState extends State<DateFilterSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.secondary;
+    final color = Theme.of(context).colorScheme.onPrimary;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

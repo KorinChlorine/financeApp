@@ -15,15 +15,21 @@ class UserBalance extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.secondary;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _BalanceItem(label: "Income", value: income, color: color),
-        _BalanceItem(label: "Expenses", value: expenses, color: color),
-        _BalanceItem(label: "Balance", value: balance, color: color),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9DFD4),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF765F4E).withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _BalanceItem(label: 'Income', value: income, color: const Color(0xFF4F9D6C)),
+          _BalanceItem(label: 'Expenses', value: expenses, color: const Color(0xFFCE6D6D)),
+          _BalanceItem(label: 'Balance', value: balance, color: const Color(0xFF3B7A56)),
+        ],
+      ),
     );
   }
 }

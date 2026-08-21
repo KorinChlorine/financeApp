@@ -19,6 +19,15 @@ class PageHeader extends StatefulWidget implements PreferredSizeWidget {
     this.leftLabel = 'Expenses so far',
     this.rightLabel = 'Income so far',
     this.totalLabel = 'Total',
+    this.onSearchPressed,
+    this.headerControl,
+    this.topPadding = 72,
+    this.showSearch = true,
+    this.headerHeight = 240,
+    this.toolbarHeight = 86,
+    this.showBalance = true,
+    this.showTodayAction = false,
+    this.onTodayPressed,
   });
 
   final DateFilterMode filterMode;
@@ -34,9 +43,18 @@ class PageHeader extends StatefulWidget implements PreferredSizeWidget {
   final String leftLabel;
   final String rightLabel;
   final String totalLabel;
+  final VoidCallback? onSearchPressed;
+  final Widget? headerControl;
+  final double topPadding;
+  final bool showSearch;
+  final double headerHeight;
+  final double toolbarHeight;
+  final bool showBalance;
+  final bool showTodayAction;
+  final VoidCallback? onTodayPressed;
 
   @override
-  Size get preferredSize => const Size.fromHeight(260);
+  Size get preferredSize => Size.fromHeight(headerHeight);
 
   @override
   State<PageHeader> createState() => _PageHeaderState();
@@ -46,17 +64,20 @@ class _PageHeaderState extends State<PageHeader> {
 
   @override
   Widget build(BuildContext context) {
-    final secondaryColor = Theme.of(context).colorScheme.secondary;
-    final primaryColor = Theme.of(context).colorScheme.primary;
+    final secondaryColor = Theme.of(context).colorScheme.onPrimary;
+    final primaryColor = const Color(0xFF4B362D);
+    final summarySurface = const Color(0xFFE9DFD4);
+    final summaryBorder = const Color(0xFF765F4E);
 
     return AppBar(
       title: const Text('Khoraise'),
       foregroundColor: secondaryColor,
       backgroundColor: primaryColor,
-      toolbarHeight: 120, // matches preferredSize now
+      toolbarHeight: widget.toolbarHeight,
+      elevation: 0,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(15),
+          bottom: Radius.circular(18),
         ),
       ),
       leading: IconButton(
@@ -80,101 +101,133 @@ class _PageHeaderState extends State<PageHeader> {
             ],
           ),
         const SizedBox(width: 4),
-        const Icon(Icons.search, size: 35),
+        if (widget.showSearch)
+          IconButton(
+            onPressed: widget.onSearchPressed ?? () {},
+            icon: const Icon(Icons.search, size: 35),
+            color: secondaryColor,
+          ),
+        if (widget.showTodayAction)
+          IconButton(
+            onPressed: widget.onTodayPressed,
+            icon: const Icon(Icons.today_outlined, size: 28),
+            color: secondaryColor,
+            tooltip: 'Today',
+          ),
         const SizedBox(width: 10),
       ],
-      flexibleSpace: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          const SizedBox(height: 90),
-          if (widget.showDateSelector)
-            DateFilterSelector(
-              filterMode: widget.filterMode,
-              onFilterChanged: widget.onFilterChanged,
-              selectedDate: widget.selectedDate,
-              onDateChanged: widget.onDateChanged,
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: secondaryColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                widget.dateLabel,
-                style: TextStyle(
-                  color: secondaryColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+      flexibleSpace: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(top: widget.topPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.showDateSelector)
+                DateFilterSelector(
+                  filterMode: widget.filterMode,
+                  onFilterChanged: widget.onFilterChanged,
+                  selectedDate: widget.selectedDate,
+                  onDateChanged: widget.onDateChanged,
+                )
+              else if (widget.headerControl != null)
+                widget.headerControl!
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: summarySurface,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: summaryBorder.withValues(alpha: 0.18)),
+                  ),
+                  child: Text(
+                    widget.dateLabel,
+                    style: TextStyle(
+                      color: primaryColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          const SizedBox(height: 14),
-          if (widget.showTripleSummary)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _HeaderSummaryItem(
-                      label: widget.leftLabel,
-                      value: widget.income,
-                      color: secondaryColor,
-                    ),
-                  ),
-                  Expanded(
-                    child: _HeaderSummaryItem(
-                      label: widget.rightLabel,
-                      value: widget.expenses,
-                      color: secondaryColor,
-                    ),
-                  ),
-                  Expanded(
-                    child: _HeaderSummaryItem(
-                      label: widget.totalLabel,
-                      value: widget.income - widget.expenses,
-                      color: secondaryColor,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else if (widget.showDualSummaryLabels)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.leftLabel,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: secondaryColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+              const SizedBox(height: 12),
+              if (widget.showTripleSummary)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: summarySurface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: summaryBorder.withValues(alpha: 0.18),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      widget.rightLabel,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: secondaryColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: _HeaderSummaryItem(
+                            label: widget.leftLabel,
+                            value: widget.income,
+                            color: const Color(0xFF4B362D),
+                          ),
+                        ),
+                        Expanded(
+                          child: _HeaderSummaryItem(
+                            label: widget.rightLabel,
+                            value: widget.expenses,
+                            color: const Color(0xFFB85D5D),
+                          ),
+                        ),
+                        Expanded(
+                          child: _HeaderSummaryItem(
+                            label: widget.totalLabel,
+                            value: widget.income - widget.expenses,
+                            color: const Color(0xFF3B7A56),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 10),
-          if (!widget.showTripleSummary)
-            UserBalance(income: widget.income, expenses: widget.expenses),
-          const SizedBox(height: 30),
-        ],
+                )
+              else if (widget.showDualSummaryLabels)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.leftLabel,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: secondaryColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          widget.rightLabel,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: secondaryColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 6),
+              if (!widget.showTripleSummary && widget.showBalance)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: UserBalance(income: widget.income, expenses: widget.expenses),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -194,12 +247,13 @@ class _HeaderSummaryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: color,
+            color: color.withValues(alpha: 0.82),
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
