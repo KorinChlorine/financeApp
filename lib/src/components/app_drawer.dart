@@ -52,9 +52,14 @@ class AppDrawer extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           children: [
             const SizedBox(height: 12),
-            Text(
-              'Khoraise',
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              children: [
+                ClipOval(
+                  child: Image.asset('assets/icon/icon.png', width: 52, height: 52, fit: BoxFit.cover),
+                ),
+                const SizedBox(width: 12),
+                Text('Khoraise', style: Theme.of(context).textTheme.titleLarge),
+              ],
             ),
             const SizedBox(height: 20),
             ...items.map(

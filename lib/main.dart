@@ -7,7 +7,9 @@ import 'src/pages/planner_page.dart';
 import 'src/pages/settings_page.dart';
 import 'src/services/finance_repository.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await financeRepository.ready;
   runApp(const MyApp());
 }
 
@@ -16,10 +18,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return AnimatedBuilder(
+      animation: financeRepository,
+      builder: (context, child) => MaterialApp(
       title: 'Khoraise',
       theme: ThemeData(
         useMaterial3: true,
+        visualDensity: financeRepository.settings.compactMode
+            ? VisualDensity.compact
+            : VisualDensity.standard,
         scaffoldBackgroundColor: const Color(0xFFE9DDCB),
         cardTheme: CardThemeData(
           color: const Color(0xFFF3EAE0),
@@ -78,6 +85,7 @@ class MyApp extends StatelessWidget {
         '/settings': (context) => SettingsPage(repository: financeRepository),
       },
       home: const Dashboard(),
+      ),
     );
   }
 }

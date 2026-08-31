@@ -10,13 +10,11 @@ class FinanceRepository extends ChangeNotifier {
   FinanceRepository() {
     _accounts.addAll([
       Account(id: 'cash', name: 'Cash'),
-      Account(id: 'bank', name: 'Bank Account'),
       Account(id: 'savings', name: 'Savings'),
     ]);
 
     _categories.addAll([
       TransactionCategory(id: 'salary', name: 'Salary', type: TransactionType.income),
-      TransactionCategory(id: 'freelance', name: 'Freelance', type: TransactionType.income),
       TransactionCategory(id: 'bonus', name: 'Bonus', type: TransactionType.income),
       TransactionCategory(id: 'food', name: 'Food', type: TransactionType.expense),
       TransactionCategory(id: 'transport', name: 'Transport', type: TransactionType.expense),
@@ -26,80 +24,7 @@ class FinanceRepository extends ChangeNotifier {
       TransactionCategory(id: 'other-expense', name: 'Other Expense', type: TransactionType.expense),
     ]);
 
-    _transactions.addAll([
-      FinanceTransaction(
-        id: 'tx_seed_1',
-        title: 'Monthly salary',
-        type: TransactionType.income,
-        amount: 4200,
-        accountId: 'bank',
-        categoryId: 'salary',
-        date: DateTime.now().subtract(const Duration(days: 2)),
-        note: 'Primary income',
-      ),
-      FinanceTransaction(
-        id: 'tx_seed_2',
-        title: 'Freelance project',
-        type: TransactionType.income,
-        amount: 960,
-        accountId: 'cash',
-        categoryId: 'freelance',
-        date: DateTime.now().subtract(const Duration(days: 9)),
-        note: 'Design sprint',
-      ),
-      FinanceTransaction(
-        id: 'tx_seed_3',
-        title: 'Rent payment',
-        type: TransactionType.expense,
-        amount: 1350,
-        accountId: 'bank',
-        categoryId: 'other-expense',
-        date: DateTime.now().subtract(const Duration(days: 4)),
-        note: 'Apartment',
-      ),
-      FinanceTransaction(
-        id: 'tx_seed_4',
-        title: 'Groceries',
-        type: TransactionType.expense,
-        amount: 220,
-        accountId: 'cash',
-        categoryId: 'food',
-        date: DateTime.now().subtract(const Duration(days: 6)),
-        note: 'Weekly food shop',
-      ),
-      FinanceTransaction(
-        id: 'tx_seed_5',
-        title: 'Fuel',
-        type: TransactionType.expense,
-        amount: 95,
-        accountId: 'bank',
-        categoryId: 'transport',
-        date: DateTime.now().subtract(const Duration(days: 12)),
-        note: 'Commute and errands',
-      ),
-      FinanceTransaction(
-        id: 'tx_seed_6',
-        title: 'Electricity bill',
-        type: TransactionType.expense,
-        amount: 160,
-        accountId: 'bank',
-        categoryId: 'other-expense',
-        date: DateTime.now().subtract(const Duration(days: 18)),
-        note: 'Monthly services',
-      ),
-      FinanceTransaction(
-        id: 'tx_seed_7',
-        title: 'Bonus',
-        type: TransactionType.income,
-        amount: 1350,
-        accountId: 'savings',
-        categoryId: 'bonus',
-        date: DateTime.now().subtract(const Duration(days: 25)),
-        note: 'Performance bonus',
-      ),
-    ]);
-    _transactions.sort((a, b) => b.date.compareTo(a.date));
-    _loadPersistedSettings();
+    ready = _loadPersistedData();
   }
 
   final List<Account> _accounts = <Account>[];
@@ -108,6 +33,8 @@ class FinanceRepository extends ChangeNotifier {
   final List<Budget> _budgets = <Budget>[];
   final List<RecurringTransaction> _recurringTransactions = <RecurringTransaction>[];
   AppSettings _settings = const AppSettings();
+  late final Future<void> ready;
+  Future<void> _persistenceQueue = Future<void>.value();
 
   List<Account> get accounts => List.unmodifiable(_accounts);
   List<TransactionCategory> get categories => List.unmodifiable(_categories);
@@ -175,14 +102,12 @@ class FinanceRepository extends ChangeNotifier {
       ..clear()
       ..addAll([
         Account(id: 'cash', name: 'Cash'),
-        Account(id: 'bank', name: 'Bank Account'),
         Account(id: 'savings', name: 'Savings'),
       ]);
     _categories
       ..clear()
       ..addAll([
         TransactionCategory(id: 'salary', name: 'Salary', type: TransactionType.income),
-        TransactionCategory(id: 'freelance', name: 'Freelance', type: TransactionType.income),
         TransactionCategory(id: 'bonus', name: 'Bonus', type: TransactionType.income),
         TransactionCategory(id: 'food', name: 'Food', type: TransactionType.expense),
         TransactionCategory(id: 'transport', name: 'Transport', type: TransactionType.expense),
@@ -198,6 +123,7 @@ class FinanceRepository extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('khoraise_settings');
+    await prefs.remove('khoraise_data');
     notifyListeners();
   }
 
@@ -208,6 +134,7 @@ class FinanceRepository extends ChangeNotifier {
     }
 
     _accounts.add(Account(id: 'account_${DateTime.now().millisecondsSinceEpoch}', name: trimmedName));
+    _persistData();
     notifyListeners();
   }
 
@@ -218,6 +145,7 @@ class FinanceRepository extends ChangeNotifier {
 
     _accounts.removeWhere((account) => account.id == id);
     _transactions.removeWhere((transaction) => transaction.accountId == id);
+    _persistData();
     notifyListeners();
   }
 
@@ -234,6 +162,7 @@ class FinanceRepository extends ChangeNotifier {
         type: type,
       ),
     );
+    _persistData();
     notifyListeners();
   }
 
@@ -245,6 +174,7 @@ class FinanceRepository extends ChangeNotifier {
     _categories.removeWhere((category) => category.id == id);
     _transactions.removeWhere((transaction) => transaction.categoryId == id);
     _budgets.removeWhere((budget) => budget.categoryId == id);
+    _persistData();
     notifyListeners();
   }
 
@@ -278,32 +208,38 @@ class FinanceRepository extends ChangeNotifier {
         ),
       );
     }
+    _persistData();
     notifyListeners();
   }
 
   void addTransaction(FinanceTransaction transaction) {
     _transactions.add(transaction);
     _transactions.sort((a, b) => b.date.compareTo(a.date));
+    _persistData();
     notifyListeners();
   }
 
   void addBudget(Budget budget) {
     _budgets.add(budget);
+    _persistData();
     notifyListeners();
   }
 
   void removeBudget(String id) {
     _budgets.removeWhere((budget) => budget.id == id);
+    _persistData();
     notifyListeners();
   }
 
   void addRecurringTransaction(RecurringTransaction recurringTransaction) {
     _recurringTransactions.add(recurringTransaction);
+    _persistData();
     notifyListeners();
   }
 
   void removeRecurringTransaction(String id) {
     _recurringTransactions.removeWhere((transaction) => transaction.id == id);
+    _persistData();
     notifyListeners();
   }
 
@@ -351,12 +287,14 @@ class FinanceRepository extends ChangeNotifier {
     if (index >= 0) {
       _transactions[index] = updatedTransaction;
       _transactions.sort((a, b) => b.date.compareTo(a.date));
+      _persistData();
       notifyListeners();
     }
   }
 
   void deleteTransaction(String id) {
     _transactions.removeWhere((transaction) => transaction.id == id);
+    _persistData();
     notifyListeners();
   }
 
@@ -452,7 +390,12 @@ class FinanceRepository extends ChangeNotifier {
       }
     }
 
+    _accounts.removeWhere((account) => account.id == 'bank');
+    _categories.removeWhere((category) => category.id == 'freelance');
+    _transactions.removeWhere((transaction) => transaction.accountId == 'bank' || transaction.categoryId == 'freelance');
+
     _transactions.sort((a, b) => b.date.compareTo(a.date));
+    _persistData();
     notifyListeners();
   }
 
@@ -485,13 +428,26 @@ class FinanceRepository extends ChangeNotifier {
   }
 
   Future<void> _persistSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('khoraise_settings', jsonEncode(_settings.toJson()));
+    await _persistData();
   }
 
-  Future<void> _loadPersistedSettings() async {
+  Future<void> _persistData() async {
+    _persistenceQueue = _persistenceQueue.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('khoraise_data', jsonEncode(toJson()));
+    });
+    await _persistenceQueue;
+  }
+
+  Future<void> _loadPersistedData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final savedData = prefs.getString('khoraise_data');
+      if (savedData != null && savedData.isNotEmpty) {
+        restoreFromJson(jsonDecode(savedData) as Map<String, dynamic>);
+        return;
+      }
+
       final saved = prefs.getString('khoraise_settings');
       if (saved == null || saved.isEmpty) {
         return;

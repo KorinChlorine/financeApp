@@ -54,6 +54,7 @@ class _CalendarPageState extends State<CalendarPage> {
         onDateChanged: (date) => _changeMonth(date),
         income: _sum(transactions, TransactionType.income),
         expenses: _sum(transactions, TransactionType.expense),
+        currencySymbol: widget.repository.currencySymbol,
         showDateSelector: false,
         showTripleSummary: true,
         showSearch: false,

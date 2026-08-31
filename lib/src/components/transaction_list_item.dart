@@ -6,10 +6,12 @@ class TransactionListItem extends StatelessWidget {
     super.key,
     required this.transaction,
     required this.onTap,
+    this.currencySymbol = '\$',
   });
 
   final FinanceTransaction transaction;
   final VoidCallback onTap;
+  final String currencySymbol;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +66,7 @@ class TransactionListItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${isExpense ? '-' : '+'} ${transaction.amount.toStringAsFixed(2)}',
+                  '${isExpense ? '-' : '+'} $currencySymbol${transaction.amount.toStringAsFixed(2)}',
                   style: TextStyle(
                     color: color,
                     fontWeight: FontWeight.bold,

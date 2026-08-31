@@ -28,6 +28,7 @@ class PageHeader extends StatefulWidget implements PreferredSizeWidget {
     this.showBalance = true,
     this.showTodayAction = false,
     this.onTodayPressed,
+    this.currencySymbol = '\$',
   });
 
   final DateFilterMode filterMode;
@@ -52,6 +53,7 @@ class PageHeader extends StatefulWidget implements PreferredSizeWidget {
   final bool showBalance;
   final bool showTodayAction;
   final VoidCallback? onTodayPressed;
+  final String currencySymbol;
 
   @override
   Size get preferredSize => Size.fromHeight(headerHeight);
@@ -169,6 +171,7 @@ class _PageHeaderState extends State<PageHeader> {
                             label: widget.leftLabel,
                             value: widget.income,
                             color: const Color(0xFF4B362D),
+                            currencySymbol: widget.currencySymbol,
                           ),
                         ),
                         Expanded(
@@ -176,6 +179,7 @@ class _PageHeaderState extends State<PageHeader> {
                             label: widget.rightLabel,
                             value: widget.expenses,
                             color: const Color(0xFFB85D5D),
+                            currencySymbol: widget.currencySymbol,
                           ),
                         ),
                         Expanded(
@@ -183,6 +187,7 @@ class _PageHeaderState extends State<PageHeader> {
                             label: widget.totalLabel,
                             value: widget.income - widget.expenses,
                             color: const Color(0xFF3B7A56),
+                            currencySymbol: widget.currencySymbol,
                           ),
                         ),
                       ],
@@ -223,7 +228,7 @@ class _PageHeaderState extends State<PageHeader> {
               if (!widget.showTripleSummary && widget.showBalance)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 18),
-                  child: UserBalance(income: widget.income, expenses: widget.expenses),
+                  child: UserBalance(income: widget.income, expenses: widget.expenses, currencySymbol: widget.currencySymbol),
                 ),
             ],
           ),
@@ -238,11 +243,13 @@ class _HeaderSummaryItem extends StatelessWidget {
     required this.label,
     required this.value,
     required this.color,
+    required this.currencySymbol,
   });
 
   final String label;
   final double value;
   final Color color;
+  final String currencySymbol;
 
   @override
   Widget build(BuildContext context) {
@@ -260,7 +267,7 @@ class _HeaderSummaryItem extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          value.toStringAsFixed(2),
+          '${currencySymbol}${value.toStringAsFixed(2)}',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: color,

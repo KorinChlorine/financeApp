@@ -100,14 +100,14 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  List<double> _buildChartValues() {
+  List<double> _buildChartValues(List<FinanceTransaction> transactions) {
     final values = <double>[];
 
     switch (_filterMode) {
       case DateFilterMode.daily:
         for (int index = 6; index >= 0; index--) {
           final date = _selectedDate.subtract(Duration(days: index));
-          final total = _repository.transactions
+          final total = transactions
               .where((transaction) =>
                   transaction.date.year == date.year &&
                   transaction.date.month == date.month &&
@@ -123,7 +123,7 @@ class _DashboardState extends State<Dashboard> {
       case DateFilterMode.weekly:
         for (int index = 6; index >= 0; index--) {
           final weekStart = _selectedDate.subtract(Duration(days: 7 * index));
-          final total = _repository.transactions.where((transaction) {
+          final total = transactions.where((transaction) {
             final currentWeekStart = weekStart.subtract(Duration(days: weekStart.weekday - 1));
             final currentWeekEnd = currentWeekStart.add(const Duration(days: 6));
             return transaction.date.isAfter(currentWeekStart.subtract(const Duration(days: 1))) &&
@@ -139,7 +139,7 @@ class _DashboardState extends State<Dashboard> {
       case DateFilterMode.monthly:
         for (int index = 5; index >= 0; index--) {
           final monthDate = DateTime(_selectedDate.year, _selectedDate.month - index, 1);
-          final total = _repository.transactions.where((transaction) {
+          final total = transactions.where((transaction) {
             return transaction.date.year == monthDate.year && transaction.date.month == monthDate.month;
           }).fold<double>(0, (sum, transaction) {
             return transaction.type == TransactionType.expense
@@ -152,7 +152,7 @@ class _DashboardState extends State<Dashboard> {
       case DateFilterMode.yearly:
         for (int index = 6; index >= 0; index--) {
           final year = _selectedDate.year - index;
-          final total = _repository.transactions.where((transaction) => transaction.date.year == year).fold<double>(0, (sum, transaction) {
+          final total = transactions.where((transaction) => transaction.date.year == year).fold<double>(0, (sum, transaction) {
             return transaction.type == TransactionType.expense
                 ? sum - transaction.amount
                 : sum + transaction.amount;
@@ -203,7 +203,40 @@ class _DashboardState extends State<Dashboard> {
         .where((transaction) => transaction.type == TransactionType.expense)
         .fold<double>(0, (sum, transaction) => sum + transaction.amount);
 
-    final chartValues = _buildChartValues();
+    final chartTransactions = _repository.transactions.where((transaction) {
+      return _searchQuery.isEmpty ||
+          transaction.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          transaction.note.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+    final chartValues = _buildChartValues(chartTransactions);
+    final chartLabels = <String>[];
+    switch (_filterMode) {
+      case DateFilterMode.daily:
+        for (int index = 6; index >= 0; index--) {
+          final date = _selectedDate.subtract(Duration(days: index));
+          chartLabels.add(date.day.toString());
+        }
+        break;
+      case DateFilterMode.weekly:
+        for (int index = 6; index >= 0; index--) {
+          final weekStart = _selectedDate.subtract(Duration(days: 7 * index));
+          final labelDate = weekStart.subtract(Duration(days: weekStart.weekday - 1));
+          chartLabels.add(labelDate.day.toString());
+        }
+        break;
+      case DateFilterMode.monthly:
+        for (int index = 5; index >= 0; index--) {
+          final monthDate = DateTime(_selectedDate.year, _selectedDate.month - index, 1);
+          chartLabels.add(_monthShort(monthDate.month));
+        }
+        break;
+      case DateFilterMode.yearly:
+        for (int index = 6; index >= 0; index--) {
+          final year = _selectedDate.year - index;
+          chartLabels.add(year.toString());
+        }
+        break;
+    }
 
     return Scaffold(
       drawer: const AppDrawer(
@@ -220,6 +253,7 @@ class _DashboardState extends State<Dashboard> {
         },
         income: totalIncome,
         expenses: totalExpenses,
+        currencySymbol: _repository.currencySymbol,
         onSearchPressed: _showSearchDialog,
       ),
       body: ListView(
@@ -263,16 +297,22 @@ class _DashboardState extends State<Dashboard> {
                   const SizedBox(height: 14),
                   MiniBarChart(
                     values: chartValues,
+                    labels: chartLabels,
                     incomeColor: const Color(0xFF4F9D6C),
                     expenseColor: const Color(0xFFCE6D6D),
                     backgroundColor: Theme.of(context).colorScheme.surface,
+                    onBarTap: (index, value) => showGraphDetails(
+                      context,
+                      title: 'Cash flow: ${chartLabels[index]}',
+                      rows: [MapEntry('Net flow', _repository.formatCurrency(value))],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 18),
-          UserBalance(income: totalIncome, expenses: totalExpenses),
+          UserBalance(income: totalIncome, expenses: totalExpenses, currencySymbol: _repository.currencySymbol),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -302,6 +342,7 @@ class _DashboardState extends State<Dashboard> {
             ...filteredTransactions.map(
               (transaction) => TransactionListItem(
                 transaction: transaction,
+                currencySymbol: _repository.currencySymbol,
                 onTap: () => _showTransactionDetails(transaction),
               ),
             ),
@@ -315,4 +356,9 @@ class _DashboardState extends State<Dashboard> {
       backgroundColor: Theme.of(context).colorScheme.surface,
     );
   }
+}
+
+String _monthShort(int month) {
+  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return names[month - 1];
 }

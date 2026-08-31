@@ -99,8 +99,7 @@ class _TransactionFormSheetState extends State<TransactionFormSheet> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Enter a title' : null,
+                decoration: const InputDecoration(labelText: 'Title (optional)'),
               ),
               const SizedBox(height: 12),
               Row(

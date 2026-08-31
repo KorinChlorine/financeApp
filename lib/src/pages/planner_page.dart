@@ -5,6 +5,7 @@ import '../components/date_filter_selector.dart';
 import '../components/page_header.dart';
 import '../models/finance_models.dart';
 import '../services/finance_repository.dart';
+import '../components/mini_bar_chart.dart';
 
 class PlannerPage extends StatefulWidget {
   const PlannerPage({super.key, required this.repository});
@@ -60,6 +61,7 @@ class _PlannerPageState extends State<PlannerPage> {
         onDateChanged: (_) {},
         income: income,
         expenses: expenses,
+        currencySymbol: repository.currencySymbol,
         showDateSelector: false,
         showTripleSummary: true,
         showSearch: false,
@@ -85,7 +87,13 @@ class _PlannerPageState extends State<PlannerPage> {
           _PlannerCard(
             title: 'Money pulse',
             icon: Icons.insights_outlined,
-            child: Column(
+            child: GestureDetector(
+              onTap: () => showGraphDetails(
+                context,
+                title: 'Money pulse',
+                rows: [MapEntry('Spent this month', repository.formatCurrency(expenses)), MapEntry('Available', repository.formatCurrency((income - expenses).clamp(0, double.infinity)))],
+              ),
+              child: Column(
               children: [
                 _ProgressRow(
                   label: 'Spent this month',
@@ -103,8 +111,9 @@ class _PlannerPageState extends State<PlannerPage> {
                   repository: repository,
                 ),
               ],
-            ),
+              ),
           ),
+              ),
           const SizedBox(height: 14),
           _PlannerCard(
             title: 'Forecast',
@@ -139,7 +148,15 @@ class _PlannerPageState extends State<PlannerPage> {
           _PlannerCard(
             title: 'Budget check',
             icon: Icons.track_changes_outlined,
-            child: budgetStatuses.isEmpty
+            child: GestureDetector(
+              onTap: budgetStatuses.isEmpty
+                  ? null
+                  : () => showGraphDetails(
+                      context,
+                      title: 'Budget check',
+                      rows: budgetStatuses.map((status) => MapEntry(status.name, '${repository.formatCurrency(status.spent)} / ${repository.formatCurrency(status.limit)}')).toList(),
+                    ),
+              child: budgetStatuses.isEmpty
                 ? const Text('Set a category budget to start tracking your plan.')
                 : Column(
                     children: budgetStatuses.map((status) {
@@ -172,6 +189,7 @@ class _PlannerPageState extends State<PlannerPage> {
                       );
                     }).toList(),
                   ),
+                ),
           ),
         ],
       ),

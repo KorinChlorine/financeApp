@@ -90,42 +90,6 @@ class _AnalysisState extends State<Analysis> {
   DateTime _selectedDate = DateTime.now();
   String _searchQuery = '';
 
-  void _showSearchDialog() {
-    final controller = TextEditingController(text: _searchQuery);
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Search analysis'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Search by title or note',
-            ),
-            onSubmitted: (value) {
-              setState(() => _searchQuery = value.trim());
-              Navigator.of(context).pop();
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                setState(() => _searchQuery = controller.text.trim());
-                Navigator.of(context).pop();
-              },
-              child: const Text('Search'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final filteredTransactions = widget.repository.transactions.where((transaction) {
@@ -245,7 +209,7 @@ class _AnalysisState extends State<Analysis> {
                         ),
                       ),
                       Text(
-                        '${spent.toStringAsFixed(0)} / ${limit.toStringAsFixed(0)}',
+                        '${widget.repository.formatCurrency(spent)} / ${widget.repository.formatCurrency(limit)}',
                         style: TextStyle(
                           color: spent > limit ? const Color(0xFFCE6D6D) : const Color(0xFF4F9D6C),
                           fontWeight: FontWeight.bold,
@@ -277,6 +241,7 @@ class _AnalysisState extends State<Analysis> {
         onDateChanged: (date) => setState(() => _selectedDate = date),
         income: totalIncome,
         expenses: totalExpenses,
+        currencySymbol: widget.repository.currencySymbol,
         dateLabel: 'Analysis',
         showDateSelector: true,
         showTripleSummary: true,
@@ -284,7 +249,7 @@ class _AnalysisState extends State<Analysis> {
         rightLabel: 'Expenses',
         totalLabel: 'Net',
         topPadding: 75,
-        onSearchPressed: _showSearchDialog,
+        showSearch: false,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -331,6 +296,11 @@ class _AnalysisState extends State<Analysis> {
                     incomeColor: const Color(0xFF4F9D6C),
                     expenseColor: const Color(0xFFCE6D6D),
                     backgroundColor: Theme.of(context).colorScheme.surface,
+                    onBarTap: (index, value) => showGraphDetails(
+                      context,
+                      title: 'Flow overview: ${chartLabels[index]}',
+                      rows: [MapEntry('Net flow', widget.repository.formatCurrency(value))],
+                    ),
                   ),
                 ],
               ),
@@ -339,19 +309,19 @@ class _AnalysisState extends State<Analysis> {
           const SizedBox(height: 16),
           _InsightCard(
             title: 'Net flow',
-            value: (totalIncome - totalExpenses).toStringAsFixed(2),
+            value: widget.repository.formatCurrency(totalIncome - totalExpenses),
             accent: const Color(0xFF4F9D6C),
           ),
           const SizedBox(height: 12),
           _InsightCard(
             title: 'Income',
-            value: totalIncome.toStringAsFixed(2),
+            value: widget.repository.formatCurrency(totalIncome),
             accent: const Color(0xFF4F9D6C),
           ),
           const SizedBox(height: 12),
           _InsightCard(
             title: 'Expenses',
-            value: totalExpenses.toStringAsFixed(2),
+            value: widget.repository.formatCurrency(totalExpenses),
             accent: const Color(0xFFCE6D6D),
           ),
           const SizedBox(height: 20),
@@ -397,7 +367,7 @@ class _AnalysisState extends State<Analysis> {
                       ),
                     ),
                     Text(
-                      summary.total.toStringAsFixed(2),
+                      widget.repository.formatCurrency(summary.total),
                       style: TextStyle(
                         color: summary.category.type == TransactionType.expense
                             ? const Color(0xFFCE6D6D)
@@ -424,9 +394,18 @@ class _AnalysisState extends State<Analysis> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    height: 160,
-                    child: Row(
+                  GestureDetector(
+                    onTap: () => showGraphDetails(
+                      context,
+                      title: 'Income vs expense',
+                      rows: [
+                        MapEntry('Income', widget.repository.formatCurrency(totalIncome)),
+                        MapEntry('Expenses', widget.repository.formatCurrency(totalExpenses)),
+                      ],
+                    ),
+                    child: SizedBox(
+                      height: 160,
+                      child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: List.generate(6, (index) {
                         final date = DateTime.now().subtract(Duration(days: 5 - index));
@@ -485,6 +464,7 @@ class _AnalysisState extends State<Analysis> {
                         );
                       }),
                     ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -519,9 +499,15 @@ class _AnalysisState extends State<Analysis> {
                     ...topCategories.map((summary) {
                       final total = topCategories.fold<double>(0, (sum, item) => sum + item.total);
                       final percent = total > 0 ? (summary.total / total) * 100 : 0;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Column(
+                      return GestureDetector(
+                        onTap: () => showGraphDetails(
+                          context,
+                          title: summary.category.name,
+                          rows: [MapEntry('Share', '${percent.toStringAsFixed(0)}%'), MapEntry('Amount', widget.repository.formatCurrency(summary.total))],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -545,6 +531,7 @@ class _AnalysisState extends State<Analysis> {
                               ),
                             ),
                           ],
+                          ),
                         ),
                       );
                     }),
@@ -559,7 +546,7 @@ class _AnalysisState extends State<Analysis> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('No budgets set yet. Add one from the app settings flow to track spending.'),
+                child: Text('No budgets set yet. Add one from the accounts to start.'),
               ),
             )
           else

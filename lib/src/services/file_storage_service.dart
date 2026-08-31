@@ -1,58 +1,43 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 
 class FileStorageService {
   Future<String?> exportPdf(List<int> bytes) async {
-    final result = await FilePicker.platform.saveFile(
+    final result = await FilePicker.saveFile(
       fileName: 'khoraise-report.pdf',
+      bytes: Uint8List.fromList(bytes),
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
 
-    if (result == null) {
-      return null;
-    }
-
-    final file = File(result);
-    await file.create(recursive: true);
-    await file.writeAsBytes(bytes);
-    return result;
+    return result?.toFilePath();
   }
 
   Future<String?> exportJson(String jsonData) async {
-    final result = await FilePicker.platform.saveFile(
+    final result = await FilePicker.saveFile(
       fileName: 'khoraise-export.json',
+      bytes: Uint8List.fromList(utf8.encode(jsonData)),
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
 
-    if (result == null) {
-      return null;
-    }
-
-    final file = File(result);
-    await file.create(recursive: true);
-    await file.writeAsString(jsonData);
-    return result;
+    return result?.toFilePath();
   }
 
   Future<Map<String, dynamic>?> importJson() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
-      withData: true,
     );
 
-    if (result == null || result.files.isEmpty) {
+    if (result.isEmpty) {
       return null;
     }
 
-    final file = result.files.first;
-    final rawData = file.bytes != null
-        ? utf8.decode(file.bytes!)
-        : await File(file.path!).readAsString();
+    final bytes = await result.first.readAsBytes();
+    final rawData = utf8.decode(bytes);
 
     final decoded = jsonDecode(rawData);
     if (decoded is! Map<String, dynamic>) {

@@ -8,6 +8,7 @@ class MiniBarChart extends StatelessWidget {
     this.incomeColor = const Color(0xFF4F9D6C),
     this.expenseColor = const Color(0xFFCE6D6D),
     this.backgroundColor = const Color(0xFFE9DCC7),
+    this.onBarTap,
   });
 
   final List<double> values;
@@ -15,6 +16,7 @@ class MiniBarChart extends StatelessWidget {
   final Color incomeColor;
   final Color expenseColor;
   final Color backgroundColor;
+  final void Function(int index, double value)? onBarTap;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class MiniBarChart extends StatelessWidget {
       return const SizedBox(height: 120);
     }
 
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final maxValue = values.map((value) => value.abs()).reduce((a, b) => a > b ? a : b);
 
     return SizedBox(
       height: 120,
@@ -35,9 +37,11 @@ class MiniBarChart extends StatelessWidget {
           final normalized = maxValue == 0 ? 0.0 : (value.abs() / maxValue).clamp(0.0, 1.0);
 
           return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Align(
+            child: GestureDetector(
+              onTap: onBarTap == null ? null : () => onBarTap!(index, value),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Align(
                 alignment: Alignment.bottomCenter,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -69,6 +73,7 @@ class MiniBarChart extends StatelessWidget {
                     ),
                   ],
                 ),
+                ),
               ),
             ),
           );
@@ -76,4 +81,27 @@ class MiniBarChart extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> showGraphDetails(
+  BuildContext context, {
+  required String title,
+  required List<MapEntry<String, String>> rows,
+}) {
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(
+          shrinkWrap: true,
+          children: rows
+              .map((row) => ListTile(title: Text(row.key), trailing: Text(row.value)))
+              .toList(),
+        ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+    ),
+  );
 }

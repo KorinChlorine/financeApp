@@ -27,7 +27,7 @@ class TransactionDetailSheet extends StatelessWidget {
           Text(transaction.title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Text(
-            '${transaction.type.name.toUpperCase()} • ${transaction.amount.toStringAsFixed(2)}',
+            '${transaction.type.name.toUpperCase()} • ${repository.currencySymbol}${transaction.amount.toStringAsFixed(2)}',
             style: TextStyle(color: color, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),

@@ -4,6 +4,8 @@ import '../components/date_filter_selector.dart';
 import '../components/page_header.dart';
 import '../models/finance_models.dart';
 import '../services/finance_repository.dart';
+import '../components/mini_bar_chart.dart';
+import '../resources/finance_colors.dart';
 
 class AccountsPage extends StatefulWidget {
   const AccountsPage({super.key, required this.repository});
@@ -15,6 +17,8 @@ class AccountsPage extends StatefulWidget {
 }
 
 class _AccountsPageState extends State<AccountsPage> {
+  static const _incomeColor = Color(0xFF4F9D6C);
+  static const _expenseColor = Color(0xFFCE6D6D);
   final _accountController = TextEditingController();
   final _categoryController = TextEditingController();
   TransactionType _selectedType = TransactionType.expense;
@@ -80,14 +84,15 @@ class _AccountsPageState extends State<AccountsPage> {
         onDateChanged: (_) {},
         income: totalIncome,
         expenses: totalExpenses,
+        currencySymbol: widget.repository.currencySymbol,
         showDateSelector: false,
         showSearch: false,
         dateLabel: 'All Accounts',
         showTripleSummary: true,
         topPadding: 90,
-        leftLabel: 'Income so far',
-        rightLabel: 'Expenses so far',
-        totalLabel: 'Total in all accounts',
+        leftLabel: 'Income',
+        rightLabel: 'Expenses',
+        totalLabel: 'Total',
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 32),
@@ -115,16 +120,18 @@ class _AccountsPageState extends State<AccountsPage> {
                     children: [
                       Expanded(
                         child: _MetricCard(
-                          label: 'Total balance',
+                          label: 'Total',
                           value: accountStats.fold<double>(0, (sum, entry) => sum + (entry['total'] as double)),
                           icon: Icons.account_balance_wallet_rounded,
                           color: Theme.of(context).colorScheme.primary,
+                          decimalPlaces: 0,
+                          currencySymbol: widget.repository.currencySymbol,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: _MetricCard(
-                          label: 'Active accounts',
+                          label: 'Accounts',
                           value: activeAccounts.toDouble(),
                           icon: Icons.pie_chart_rounded,
                           color: Colors.green.shade700,
@@ -134,10 +141,12 @@ class _AccountsPageState extends State<AccountsPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: _MetricCard(
-                          label: 'Top account',
+                          label: 'Highest',
                           value: highestAccount == null ? 0 : (highestAccount['total'] as double),
                           icon: Icons.trending_up_rounded,
-                          color: Colors.amber.shade700,
+                          color: _incomeColor,
+                          decimalPlaces: 0,
+                          currencySymbol: widget.repository.currencySymbol,
                         ),
                       ),
                     ],
@@ -158,9 +167,18 @@ class _AccountsPageState extends State<AccountsPage> {
                           style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 11),
-                        SizedBox(
-                          height: 85,
-                          child: Row(
+                        GestureDetector(
+                          onTap: () => showGraphDetails(
+                            context,
+                            title: 'Balance flow',
+                            rows: accountStats.map((entry) {
+                              final account = entry['account'] as Account;
+                              return MapEntry(account.name, widget.repository.formatCurrency(entry['total'] as double));
+                            }).toList(),
+                          ),
+                          child: SizedBox(
+                            height: 85,
+                            child: Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: accountStats.isEmpty
                                 ? [
@@ -192,15 +210,15 @@ class _AccountsPageState extends State<AccountsPage> {
                                                   begin: Alignment.topCenter,
                                                   end: Alignment.bottomCenter,
                                                   colors: isPositive
-                                                      ? [Colors.green.shade400, Colors.green.shade700]
-                                                      : [Colors.red.shade400, Colors.red.shade700],
+                                                      ? [_incomeColor.withValues(alpha: 0.7), _incomeColor]
+                                                      : [_expenseColor.withValues(alpha: 0.7), _expenseColor],
                                                 ),
                                                 borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
                                               ),
                                             ),
                                             const SizedBox(height: 6),
                                             Text(
-                                              account.name.length > 6 ? account.name.substring(0, 6) : account.name,
+                                              account.name.length > 6 ? '${account.name.substring(0, 6)}...' : account.name,
                                               style: Theme.of(context).textTheme.labelSmall,
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -209,6 +227,7 @@ class _AccountsPageState extends State<AccountsPage> {
                                       ),
                                     );
                                   }).toList(),
+                            ),
                           ),
                         ),
                       ],
@@ -248,6 +267,25 @@ class _AccountsPageState extends State<AccountsPage> {
                                     style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: accountTotal >= 0
+                                        ? _incomeColor.withValues(alpha: 0.14)
+                                        : _expenseColor.withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    accountTotal >= 0 ? 'Healthy' : 'Watchlist',
+                                    style: TextStyle(
+                                      color: accountTotal >= 0 ? _incomeColor : _expenseColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
                                 IconButton(
                                   onPressed: () {
                                     showDialog(
@@ -284,24 +322,6 @@ class _AccountsPageState extends State<AccountsPage> {
                                   constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
                                   padding: const EdgeInsets.all(8),
                                 ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: accountTotal >= 0
-                                        ? Colors.green.shade100
-                                        : Colors.red.shade100,
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    accountTotal >= 0 ? 'Healthy' : 'Watch list',
-                                    style: TextStyle(
-                                      color: accountTotal >= 0 ? Colors.green.shade800 : Colors.red.shade800,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
@@ -312,7 +332,7 @@ class _AccountsPageState extends State<AccountsPage> {
                                 minHeight: 8,
                                 backgroundColor: Colors.grey.shade200,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  accountTotal >= 0 ? Colors.green.shade500 : Colors.red.shade500,
+                                  accountTotal >= 0 ? _incomeColor : _expenseColor,
                                 ),
                               ),
                             ),
@@ -323,7 +343,8 @@ class _AccountsPageState extends State<AccountsPage> {
                                   child: _AccountDetailTile(
                                     label: 'Income',
                                     value: accountIncome,
-                                    color: Colors.green.shade700,
+                                    currencySymbol: widget.repository.currencySymbol,
+                                    color: _incomeColor,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -331,7 +352,8 @@ class _AccountsPageState extends State<AccountsPage> {
                                   child: _AccountDetailTile(
                                     label: 'Expense',
                                     value: accountExpenses,
-                                    color: Colors.red.shade700,
+                                    currencySymbol: widget.repository.currencySymbol,
+                                    color: _expenseColor,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -339,6 +361,7 @@ class _AccountsPageState extends State<AccountsPage> {
                                   child: _AccountDetailTile(
                                     label: 'Total',
                                     value: accountTotal,
+                                    currencySymbol: widget.repository.currencySymbol,
                                     color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
@@ -481,8 +504,8 @@ class _AccountsPageState extends State<AccountsPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
                               color: category.type == TransactionType.expense
-                                  ? Colors.red.shade50
-                                  : Colors.green.shade50,
+                                  ? expenseColor.withValues(alpha: 0.1)
+                                  : incomeColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
                             ),
@@ -502,9 +525,9 @@ class _AccountsPageState extends State<AccountsPage> {
                                         Padding(
                                           padding: const EdgeInsets.only(top: 6),
                                           child: Text(
-                                            '${spent.toStringAsFixed(0)} / ${limit.toStringAsFixed(0)}',
+                                            '${widget.repository.formatCurrency(spent)} / ${widget.repository.formatCurrency(limit)}',
                                             style: TextStyle(
-                                              color: spent > limit ? Colors.red.shade700 : Colors.green.shade700,
+                                              color: spent > limit ? expenseColor : incomeColor,
                                               fontSize: 11,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -618,6 +641,8 @@ class _MetricCard extends StatelessWidget {
     required this.icon,
     required this.color,
     this.isCount = false,
+    this.decimalPlaces = 2,
+    this.currencySymbol = '\$',
   });
 
   final String label;
@@ -625,6 +650,8 @@ class _MetricCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool isCount;
+  final int decimalPlaces;
+  final String currencySymbol;
 
   @override
   Widget build(BuildContext context) {
@@ -652,7 +679,7 @@ class _MetricCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            isCount ? value.toStringAsFixed(0) : value.toStringAsFixed(2),
+            '${isCount ? '' : currencySymbol}${value.toStringAsFixed(isCount ? 0 : decimalPlaces)}',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: color,
               fontWeight: FontWeight.w800,
@@ -772,11 +799,13 @@ class _AccountDetailTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.color,
+    required this.currencySymbol,
   });
 
   final String label;
   final double value;
   final Color color;
+  final String currencySymbol;
 
   @override
   Widget build(BuildContext context) {
@@ -793,7 +822,7 @@ class _AccountDetailTile extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          value.toStringAsFixed(2),
+          '$currencySymbol${value.toStringAsFixed(2)}',
           style: TextStyle(
             color: color,
             fontSize: 14,

@@ -1,4 +1,4 @@
-package com.example.finance_management_app
+package com.example.khoraise
 
 import io.flutter.embedding.android.FlutterActivity
 

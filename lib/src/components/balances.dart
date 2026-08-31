@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 class UserBalance extends StatelessWidget {
   final double income;
   final double expenses;
+  final String currencySymbol;
 
   const UserBalance({
     super.key,
     required this.income,
     required this.expenses,
+    this.currencySymbol = '\$',
   });
 
   double get balance => income - expenses;
@@ -25,9 +27,9 @@ class UserBalance extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _BalanceItem(label: 'Income', value: income, color: const Color(0xFF4F9D6C)),
-          _BalanceItem(label: 'Expenses', value: expenses, color: const Color(0xFFCE6D6D)),
-          _BalanceItem(label: 'Balance', value: balance, color: const Color(0xFF3B7A56)),
+          _BalanceItem(label: 'Income', value: income, color: const Color(0xFF4F9D6C), currencySymbol: currencySymbol),
+          _BalanceItem(label: 'Expenses', value: expenses, color: const Color(0xFFCE6D6D), currencySymbol: currencySymbol),
+          _BalanceItem(label: 'Balance', value: balance, color: const Color(0xFF3B7A56), currencySymbol: currencySymbol),
         ],
       ),
     );
@@ -38,11 +40,13 @@ class _BalanceItem extends StatelessWidget {
   final String label;
   final double value;
   final Color color;
+  final String currencySymbol;
 
   const _BalanceItem({
     required this.label,
     required this.value,
     required this.color,
+    required this.currencySymbol,
   });
 
   @override
@@ -60,7 +64,7 @@ class _BalanceItem extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          value.toStringAsFixed(2),
+          '$currencySymbol${value.toStringAsFixed(2)}',
           style: TextStyle(
             color: color,
             fontSize: 16,
